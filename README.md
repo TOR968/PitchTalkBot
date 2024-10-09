@@ -32,7 +32,7 @@
    npm install
    ```
 
-4. Open the `data.txt` file in a text editor and add your account hashes, one per line:
+4. Open the `data.txt` file in a text editor and add your account tgWabAppData, one per line:
    ```
    account_1_here
    account_2_here

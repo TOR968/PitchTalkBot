@@ -5,6 +5,8 @@ const { HttpsProxyAgent } = require("https-proxy-agent");
 
 const BASE_URL = "https://api.pitchtalk.app/v1/api";
 
+let maxTimer = 0;
+
 const colors = {
     reset: "\x1b[0m",
     blue: "\x1b[34m",
@@ -12,12 +14,37 @@ const colors = {
     yellow: "\x1b[33m",
     red: "\x1b[31m",
     magenta: "\x1b[35m",
+    orange: "\x1b[38;2;255;165;0m",
 };
 
 const processTasks = async (api, tasks) => {
     console.log(`${colors.green}Processing Tasks...${colors.reset}`);
+
+    let hasShareXPost = false;
+    let hasShareTikTokStory = false;
+
     for (const task of tasks) {
         await processTask(api, task);
+        randomDelay();
+
+        if (task.template.title === "Share X Post") {
+            hasShareXPost = true;
+        }
+        if (task.template.title === "Share TikTok Story") {
+            hasShareTikTokStory = true;
+        }
+    }
+
+    if (!hasShareXPost) {
+        await startDailyTask(api, "share-x", generateRandomUrl("x.com"));
+        randomDelay();
+        statusLog("VERIFY_REQUESTED", "Share X Post");
+    }
+
+    if (!hasShareTikTokStory) {
+        await startDailyTask(api, "share-tiktok", generateRandomUrl("tiktok.com"));
+        randomDelay();
+        statusLog("VERIFY_REQUESTED", "Share TikTok Story");
     }
 };
 
@@ -31,17 +58,37 @@ const processTask = async (api, task) => {
             await startBasicTask(api, task);
         } else if (template.type === "DAILY") {
             if (template.title === "Share X Post") {
-                await startDailyTask(api, "share-x", generateRandomUrl("x.com"));
+                statusLog(status, template.title);
             } else if (template.title === "Share TikTok Story") {
-                await startDailyTask(api, "share-tiktok", generateRandomUrl("tiktok.com"));
+                statusLog(status, template.title);
             }
         } else {
-            console.log(`${colors.red} 🔴 ${template.title} ${colors.reset}`);
+            statusLog(status, template.title);
         }
-    } else if (status === "COMPLETED_CLAIMED") {
-        console.log(`${colors.green} ✅ ${template.title} ${colors.reset}`);
-    } else if (status === "VERIFY_REQUESTED") {
-        console.log(`${colors.yellow} 🟡 ${template.title} ${colors.reset}`);
+    } else {
+        statusLog(status, template.title);
+    }
+};
+
+const randomDelay = async () => {
+    const delay = getRandomNumber(2000, 5000);
+    return new Promise((resolve) => setTimeout(resolve, delay));
+};
+
+const statusLog = (status, title) => {
+    switch (status) {
+        case "COMPLETED_CLAIMED":
+            console.log(`${colors.green} ✅ COMPLETED: ${title} ${colors.reset}`);
+            break;
+        case "VERIFY_REQUESTED":
+            console.log(`${colors.yellow} 🟡 VERIFYING: ${title} ${colors.reset}`);
+            break;
+        case "INITIAL":
+            console.log(`${colors.blue} 🟢 IN PROGRESS: ${title} ${colors.reset}`);
+            break;
+        default:
+            console.log(`${colors.red} 🔴 NOT DONE: ${title} ${colors.reset}`);
+            break;
     }
 };
 
@@ -60,7 +107,9 @@ const startDailyTask = async (api, slug, proof) => {
 const generateRandomUrl = (domain) => {
     const randomNick = generateRandomString(getRandomNumber(6, 12));
     const randomId = generateRandomString(19, "0123456789");
-    return `https://${domain}/${randomNick}/status/${randomId}`;
+    return domain === "x.com"
+        ? `https://x.com/${randomNick}/status/${randomId}`
+        : `https://www.tiktok.com/@${randomNick}/video/${randomId}?is_from_webapp=1&sender_device=pc`;
 };
 
 const processFarming = async (api) => {
@@ -72,6 +121,10 @@ const processFarming = async (api) => {
     if (endTime < currentTime) {
         await api.post(`/users/claim-farming`);
         console.log(`${colors.green}Farming Reward Claimed${colors.reset}`);
+        console.log(`${colors.magenta}Next claim in 6 hours${colors.reset}`);
+
+        const timer = 6 * 60 * 60 * 1000;
+        setMaxTimer(timer);
     } else {
         const timeDifference = endTime - currentTime;
         const { hours, minutes, seconds } = getTimeRemaining(timeDifference);
@@ -79,6 +132,9 @@ const processFarming = async (api) => {
         console.log(
             `${colors.magenta}Remaining: ${hours} hours, ${minutes} minutes, ${seconds} seconds.${colors.reset}`
         );
+
+        const timer = hours * 60 * 60 * 1000 + minutes * 60 * 1000 + seconds * 1000;
+        setMaxTimer(timer);
     }
 };
 
@@ -89,14 +145,19 @@ const getTimeRemaining = (timeDifference) => {
     return { hours, minutes, seconds };
 };
 
+const setMaxTimer = (timer) => {
+    maxTimer = maxTimer < timer ? timer : maxTimer;
+};
+
 const processAccount = async (hash, proxy) => {
     try {
-        const hashData = JSON.parse(decodeURIComponent(querystring.parse(hash).user));
+        const parsedParams = querystring.parse(hash);
+        const hashData = JSON.parse(decodeURIComponent(parsedParams.user));
         const authBody = {
             telegramId: hashData.id.toString(),
             username: hashData.username,
             hash: hash,
-            referralCode: "",
+            referralCode: parsedParams?.start_param ? parsedParams?.start_param : "",
             photoUrl: "",
         };
 
@@ -123,11 +184,25 @@ const processAccount = async (hash, proxy) => {
         console.log(`${colors.green}Verify Tasks...${colors.reset}`);
 
         const userInfo = await api.get(`/users/me`);
+
+        getRefRewards(api, userInfo);
+
         console.log(
             `${colors.green}User Info:${colors.reset} ${userInfo.username} | coins: ${userInfo.coins} | tickets: ${userInfo.tickets}`
         );
     } catch (error) {
         console.error(`${colors.red}Error processing account:${colors.reset}`, error);
+    }
+};
+
+const getRefRewards = async (api, userInfo) => {
+    if (userInfo.referralRewards > 0) {
+        try {
+            await api.post(`/users/claim-referral`);
+            console.log(`${colors.green}Referral rewards claimed!${colors.reset}`);
+        } catch (error) {
+            console.error(`${colors.red}Error claiming referral rewards:${colors.reset}`, error);
+        }
     }
 };
 
@@ -188,6 +263,33 @@ const getRandomNumber = (min, max) => {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 };
 
+const scheduleNextRun = () => {
+    const randomDelay = getRandomNumber(600000, 2400000);
+    const totalDelay = maxTimer + randomDelay;
+    const startTime = Date.now();
+    const endTime = startTime + totalDelay;
+
+    const timerInterval = setInterval(() => updateTimer(endTime, timerInterval), 1000);
+
+    setTimeout(() => {
+        clearInterval(timerInterval);
+        main();
+    }, totalDelay);
+};
+
+const updateTimer = (endTime, timerInterval) => {
+    const currentTime = Date.now();
+    const remainingTime = endTime - currentTime;
+
+    if (remainingTime <= 0) {
+        clearInterval(timerInterval);
+        return;
+    }
+
+    const { hours, minutes, seconds } = getTimeRemaining(remainingTime);
+    process.stdout.write(`\r${colors.orange}--- Restarting in ${hours}h ${minutes}m ${seconds}s ---${colors.reset}`);
+};
+
 const main = async () => {
     try {
         const proxies = await getProxies();
@@ -202,6 +304,8 @@ const main = async () => {
         }
 
         console.log(`${colors.blue}--- All ${hashes.length} accounts processed ---${colors.reset}`);
+
+        scheduleNextRun();
     } catch (error) {
         console.error(`${colors.red}Error in main function:${colors.reset}`, error);
     }

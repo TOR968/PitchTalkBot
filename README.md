@@ -7,8 +7,12 @@
 | ✅  | Handles multiple accounts   |
 | ✅  | Proxy support               |
 | ✅  | Automatic task verification |
+| ✅  | Claim ref rewards           |
+| ✅  | Random restart timer |
 
 ## For suggestions or to report a bug, please contact [telegram](https://t.me/tor_dev)
+
+ !!! For the script to work correctly, be sure to complete the tasks "Join PitchTalk Chat" and "Subscribe to PitchTalk chanel" and run "Farming" for the first time
 
 ## Installation
 

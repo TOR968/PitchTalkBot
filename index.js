@@ -24,6 +24,18 @@ const processTasks = async (api, tasks) => {
     let hasShareTikTokStory = false;
 
     for (const task of tasks) {
+        if (task.template.title === "Subscribe to PitchTalk chanel" && task.status === "INITIAL") {
+            console.log(
+                `${colors.red}First, complete the mandatory task "Subscribe to PitchTalk chanel".${colors.reset}`
+            );
+            return;
+        }
+
+        if (task.template.title === "Join PitchTalk Chat" && task.status === "INITIAL") {
+            console.log(`${colors.red}First, complete the mandatory task "Join PitchTalk Chat".${colors.reset}`);
+            return;
+        }
+
         await processTask(api, task);
         randomDelay();
 

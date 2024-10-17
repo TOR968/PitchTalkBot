@@ -224,6 +224,18 @@ const createApiInstance = (accessToken, proxy) => {
         headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
+            origin: "https://webapp.pitchtalk.app",
+            priority: "u=1, i",
+            referer: "https://webapp.pitchtalk.app/",
+            "sec-ch-ua":
+                '"Microsoft Edge";v="129", "Not=A?Brand";v="8", "Chromium";v="129", "Microsoft Edge WebView2";v="129"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "Windows",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-site",
+            "user-agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0",
         },
         ...(proxy && { httpsAgent: new HttpsProxyAgent(proxy) }),
     });
@@ -254,6 +266,18 @@ const postRequest = async (endpoint, body = {}, proxy = null) => {
         headers: {
             "Content-Type": "application/json",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0",
+            origin: "https://webapp.pitchtalk.app",
+            priority: "u=1, i",
+            referer: "https://webapp.pitchtalk.app/",
+            "sec-ch-ua":
+                '"Microsoft Edge";v="129", "Not=A?Brand";v="8", "Chromium";v="129", "Microsoft Edge WebView2";v="129"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "Windows",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-site",
+            "user-agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0",
         },
         ...(proxy && { httpsAgent: new HttpsProxyAgent(proxy) }),
     };

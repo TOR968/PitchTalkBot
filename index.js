@@ -181,7 +181,7 @@ const processAccount = async (hash, proxy) => {
 
         console.log(`${colors.green}Authorization successful! Token received for ${hashData.username}.${colors.reset}`);
 
-        const api = createApiInstance(accessToken, proxy);
+        const api = createApiInstance(accessToken, proxy, hash);
 
         if (authResponse.dailyRewards.isNewDay) {
             console.log(`${colors.green}Daily Reward claimed!${colors.reset}`);
@@ -218,7 +218,7 @@ const getRefRewards = async (api, userInfo) => {
     }
 };
 
-const createApiInstance = (accessToken, proxy) => {
+const createApiInstance = (accessToken, proxy, user) => {
     const instance = axios.create({
         baseURL: BASE_URL,
         headers: {
@@ -236,7 +236,8 @@ const createApiInstance = (accessToken, proxy) => {
             "sec-fetch-site": "same-site",
             "user-agent":
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0",
-        },
+            'x-telegram-hash': user
+            },
         ...(proxy && { httpsAgent: new HttpsProxyAgent(proxy) }),
     });
 

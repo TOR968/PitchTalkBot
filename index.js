@@ -20,8 +20,8 @@ const colors = {
 const processTasks = async (api, tasks) => {
     console.log(`${colors.green}Processing Tasks...${colors.reset}`);
 
-    let hasShareXPost = false;
-    let hasShareTikTokStory = false;
+    // let hasShareXPost = false;
+    // let hasShareTikTokStory = false;
 
     for (const task of tasks) {
         if (task.template.title === "Subscribe to PitchTalk chanel" && task.status === "INITIAL") {
@@ -39,25 +39,25 @@ const processTasks = async (api, tasks) => {
         await processTask(api, task);
         randomDelay();
 
-        if (task.template.title === "Share X Post") {
-            hasShareXPost = true;
-        }
-        if (task.template.title === "Share TikTok Story") {
-            hasShareTikTokStory = true;
-        }
+        // if (task.template.title === "Share X Post") {
+        //     hasShareXPost = true;
+        // }
+        // if (task.template.title === "Share TikTok Story") {
+        //     hasShareTikTokStory = true;
+        // }
     }
 
-    if (!hasShareXPost) {
-        await startDailyTask(api, "share-x", generateRandomUrl("x.com"));
-        randomDelay();
-        statusLog("VERIFY_REQUESTED", "Share X Post");
-    }
+    // if (!hasShareXPost) {
+    //     await startDailyTask(api, "share-x", generateRandomUrl("x.com"));
+    //     randomDelay();
+    //     statusLog("VERIFY_REQUESTED", "Share X Post");
+    // }
 
-    if (!hasShareTikTokStory) {
-        await startDailyTask(api, "share-tiktok", generateRandomUrl("tiktok.com"));
-        randomDelay();
-        statusLog("VERIFY_REQUESTED", "Share TikTok Story");
-    }
+    // if (!hasShareTikTokStory) {
+    //     await startDailyTask(api, "share-tiktok", generateRandomUrl("tiktok.com"));
+    //     randomDelay();
+    //     statusLog("VERIFY_REQUESTED", "Share TikTok Story");
+    // }
 };
 
 const processTask = async (api, task) => {
@@ -110,11 +110,11 @@ const startBasicTask = async (api, task) => {
     console.log(`${colors.green}Task ${task.template.title} Started...${colors.reset}`);
 };
 
-const startDailyTask = async (api, slug, proof) => {
-    console.log(`${colors.yellow}--- Executing task ${slug} ---${colors.reset}`);
-    await api.post(`/tasks/create-daily`, { slug, proof });
-    console.log(`${colors.green}Task ${slug} Started...${colors.reset}`);
-};
+// const startDailyTask = async (api, slug, proof) => {
+//     console.log(`${colors.yellow}--- Executing task ${slug} ---${colors.reset}`);
+//     await api.post(`/tasks/create-daily`, { slug, proof });
+//     console.log(`${colors.green}Task ${slug} Started...${colors.reset}`);
+// };
 
 const generateRandomUrl = (domain) => {
     const randomNick = generateRandomString(getRandomNumber(6, 12));
@@ -198,6 +198,10 @@ const processAccount = async (hash, proxy) => {
         const userInfo = await api.get(`/users/me`);
 
         getRefRewards(api, userInfo);
+
+        
+// https://api.pitchtalk.app/v1/api/users/upgrade
+        // await api.post(`/users/upgrade`);
 
         console.log(
             `${colors.green}User Info:${colors.reset} ${userInfo.username} | coins: ${userInfo.coins} | tickets: ${userInfo.tickets}`

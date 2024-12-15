@@ -19,9 +19,7 @@ const colors = {
 
 const processTasks = async (api, tasks) => {
     console.log(`${colors.green}Processing Tasks...${colors.reset}`);
-
-    // let hasShareXPost = false;
-    // let hasShareTikTokStory = false;
+    profileIsCreated = false;
 
     for (const task of tasks) {
         if (task.template.title === "Subscribe to PitchTalk chanel" && task.status === "INITIAL") {
@@ -36,28 +34,20 @@ const processTasks = async (api, tasks) => {
             return;
         }
 
+        if (task.template.title === "Create Battle Profile") {
+            profileIsCreated = true;
+        }
+
         await processTask(api, task);
         randomDelay();
-
-        // if (task.template.title === "Share X Post") {
-        //     hasShareXPost = true;
-        // }
-        // if (task.template.title === "Share TikTok Story") {
-        //     hasShareTikTokStory = true;
-        // }
     }
 
-    // if (!hasShareXPost) {
-    //     await startDailyTask(api, "share-x", generateRandomUrl("x.com"));
-    //     randomDelay();
-    //     statusLog("VERIFY_REQUESTED", "Share X Post");
-    // }
-
-    // if (!hasShareTikTokStory) {
-    //     await startDailyTask(api, "share-tiktok", generateRandomUrl("tiktok.com"));
-    //     randomDelay();
-    //     statusLog("VERIFY_REQUESTED", "Share TikTok Story");
-    // }
+    if (!profileIsCreated) {
+        const payload = { slug: "create-battle-profile" };
+        await api.post(`/tasks/create-basic`, payload);
+        randomDelay();
+        statusLog("VERIFY_REQUESTED", "Create Battle Profile");
+    }
 };
 
 const processTask = async (api, task) => {
@@ -108,20 +98,6 @@ const startBasicTask = async (api, task) => {
     console.log(`${colors.yellow}--- Executing task ${task.template.title} ---${colors.reset}`);
     await api.post(`/tasks/${task.id}/start`);
     console.log(`${colors.green}Task ${task.template.title} Started...${colors.reset}`);
-};
-
-// const startDailyTask = async (api, slug, proof) => {
-//     console.log(`${colors.yellow}--- Executing task ${slug} ---${colors.reset}`);
-//     await api.post(`/tasks/create-daily`, { slug, proof });
-//     console.log(`${colors.green}Task ${slug} Started...${colors.reset}`);
-// };
-
-const generateRandomUrl = (domain) => {
-    const randomNick = generateRandomString(getRandomNumber(6, 12));
-    const randomId = generateRandomString(19, "0123456789");
-    return domain === "x.com"
-        ? `https://x.com/${randomNick}/status/${randomId}`
-        : `https://www.tiktok.com/@${randomNick}/video/${randomId}?is_from_webapp=1&sender_device=pc`;
 };
 
 const processFarming = async (api) => {
@@ -199,9 +175,10 @@ const processAccount = async (hash, proxy) => {
 
         getRefRewards(api, userInfo);
 
-        
-// https://api.pitchtalk.app/v1/api/users/upgrade
-        // await api.post(`/users/upgrade`);
+        await snowBattleGame(api);
+
+        //upgrade
+        //await api.post(`/users/upgrade`);
 
         console.log(
             `${colors.green}User Info:${colors.reset} ${userInfo.username} | coins: ${userInfo.coins} | tickets: ${userInfo.tickets}`
@@ -222,6 +199,81 @@ const getRefRewards = async (api, userInfo) => {
     }
 };
 
+const snowBattleGame = async (api) => {
+    let profile = await api.get(`/battle-profiles`);
+    console.log(`${colors.green}Profile Energy: ${profile?.energy} ${colors.reset}`);
+
+    while (profile?.energy > 0) {
+        const currentBattle = await api.get(`/battles/current`);
+
+        if (currentBattle?.status === "PENDING") {
+            console.log(`${colors.green} Continuation of the previous game: ${currentBattle.id} ${colors.reset}`);
+
+            const currentBattleInfo = await api.get(`/battles/${currentBattle.id}`);
+            await rounds(api, currentBattle.id, 5 - currentBattleInfo.rounds.length);
+            profile = await api.get(`/battle-profiles`);
+
+            console.log(
+                `${colors.green} Wins: ${profile.wins} | Losses: ${profile.losses} | Draws: ${profile.draws} ${colors.reset}`
+            );
+        } else {
+            console.log(`${colors.magenta}\nStarting Snow Battle Game ...${colors.reset}`);
+
+            const battle = await api.post(`/battles`);
+            await rounds(api, battle.id, 5);
+            profile = await api.get(`/battle-profiles`);
+
+            console.log(
+                `${colors.green}Wins: ${profile.wins} | Losses: ${profile.losses} | Draws: ${profile.draws} ${colors.reset}`
+            );
+        }
+    }
+};
+
+const rounds = async (api, battleId, maxRoundsNumber = 5) => {
+    for (let i = 0; i < maxRoundsNumber; i++) {
+        {
+            await api.post(`/battles/${battleId}/rounds`, randomHeadBodyPayload());
+            console.log(`${colors.green}Round ${i + 1}...${colors.reset}`);
+            await sleep(getRandomNumber(5, 12) * 1000);
+        }
+    }
+    console.log(`${colors.green}Battle ${battleId} finished!${colors.reset}`);
+};
+
+const randomHeadBodyPayload = () => {
+    const targets = ["HEAD", "BODY"];
+
+    return {
+        playerAttackTarget: targets[Math.floor(Math.random() * targets.length)],
+        playerDefenseTarget: targets[Math.floor(Math.random() * targets.length)],
+    };
+};
+
+const sleep = async (ms) => {
+    let percentage = 0;
+
+    const loaderInterval = setInterval(() => {
+        process.stdout.write("\r");
+        process.stdout.clearLine(0);
+
+        percentage = Math.min(percentage + 10, 100);
+        process.stdout.write(`${colors.yellow}playing ${percentage}%`);
+
+        if (percentage >= 100) {
+            clearInterval(loaderInterval);
+            process.stdout.write("\n");
+        }
+    }, ms / 10);
+
+    await new Promise((resolve) => setTimeout(resolve, ms));
+
+    clearInterval(loaderInterval);
+    process.stdout.write("\r");
+    process.stdout.clearLine(0);
+    process.stdout.write(`${colors.yellow}playing 100%\n`);
+};
+
 const createApiInstance = (accessToken, proxy, user) => {
     const instance = axios.create({
         baseURL: BASE_URL,
@@ -240,8 +292,8 @@ const createApiInstance = (accessToken, proxy, user) => {
             "sec-fetch-site": "same-site",
             "user-agent":
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0",
-            'x-telegram-hash': user
-            },
+            "x-telegram-hash": user,
+        },
         ...(proxy && { httpsAgent: new HttpsProxyAgent(proxy) }),
     });
 

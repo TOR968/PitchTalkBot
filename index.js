@@ -107,7 +107,7 @@ const processFarming = async (api) => {
     console.log(`${colors.green}Farming...${colors.reset}`);
 
     if (endTime < currentTime) {
-        await api.post(`/users/claim-farming`);
+        await api.get(`/users/claim-farming`);
         console.log(`${colors.green}Farming Reward Claimed${colors.reset}`);
         console.log(`${colors.magenta}Next claim in 6 hours${colors.reset}`);
 
@@ -188,7 +188,7 @@ const processAccount = async (hash, proxy) => {
 const getRefRewards = async (api, userInfo) => {
     if (userInfo.referralRewards > 0) {
         try {
-            await api.post(`/users/claim-referral`);
+            await api.get(`/users/claim-referral`);
             console.log(`${colors.green}Referral rewards claimed!${colors.reset}`);
         } catch (error) {
             console.error(`${colors.red}Error claiming referral rewards:${colors.reset}`, error);
@@ -197,7 +197,7 @@ const getRefRewards = async (api, userInfo) => {
 };
 
 const snowBattleGame = async (api) => {
-    let profile = await api.get(`/battle-profiles`);
+    let profile = await api.get(`/battle-profiles/my`);
     console.log(`${colors.green}Profile Energy: ${profile?.energy} ${colors.reset}`);
 
     while (profile?.energy > 0) {
@@ -208,7 +208,7 @@ const snowBattleGame = async (api) => {
 
             const currentBattleInfo = await api.get(`/battles/${currentBattle.id}`);
             await rounds(api, currentBattle.id, 5 - currentBattleInfo.rounds.length);
-            profile = await api.get(`/battle-profiles`);
+            profile = await api.get(`/battle-profiles/my`);
 
             console.log(
                 `${colors.green} Wins: ${profile.wins} | Losses: ${profile.losses} | Draws: ${profile.draws} ${colors.reset}`
@@ -216,9 +216,9 @@ const snowBattleGame = async (api) => {
         } else {
             console.log(`${colors.magenta}\nStarting Snow Battle Game ...${colors.reset}`);
 
-            const battle = await api.post(`/battles`);
+            const battle = await api.get(`/battles/create`);
             await rounds(api, battle.id, 5);
-            profile = await api.get(`/battle-profiles`);
+            profile = await api.get(`/battle-profiles/my`);
 
             console.log(
                 `${colors.green}Wins: ${profile.wins} | Losses: ${profile.losses} | Draws: ${profile.draws} ${colors.reset}`
@@ -232,7 +232,7 @@ const rounds = async (api, battleId, maxRoundsNumber = 5) => {
         {
             await api.post(`/battles/${battleId}/rounds`, randomHeadBodyPayload());
             console.log(`${colors.green}Round ${i + 1}...${colors.reset}`);
-            await sleep(getRandomNumber(5, 12) * 1000);
+            await sleep(getRandomNumber(9, 14) * 1000);
         }
     }
     console.log(`${colors.green}Battle ${battleId} finished!${colors.reset}`);

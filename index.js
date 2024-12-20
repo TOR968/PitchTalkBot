@@ -273,6 +273,7 @@ const sleep = async (ms) => {
     process.stdout.clearLine(0);
     process.stdout.write(`${colors.yellow}playing 100%\n`);
 };
+
 const createApiInstance = (accessToken, proxy, user, userAgent = null) => {
     const config = {
         baseURL: BASE_URL,
@@ -282,12 +283,6 @@ const createApiInstance = (accessToken, proxy, user, userAgent = null) => {
             origin: "https://webapp.pitchtalk.app",
             priority: "u=1, i",
             referer: "https://webapp.pitchtalk.app/",
-            "sec-ch-ua": '"Microsoft Edge";v="129", "Not=A?Brand";v="8", "Chromium";v="129", "Microsoft Edge WebView2";v="129"',
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "Windows",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors", 
-            "sec-fetch-site": "same-site",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0",
             "x-telegram-hash": user
         }
@@ -336,13 +331,6 @@ const postRequest = async (endpoint, body = {}, proxy = null, userAgent) => {
             origin: "https://webapp.pitchtalk.app",
             priority: "u=1, i",
             referer: "https://webapp.pitchtalk.app/",
-            "sec-ch-ua":
-                '"Microsoft Edge";v="129", "Not=A?Brand";v="8", "Chromium";v="129", "Microsoft Edge WebView2";v="129"',
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "Windows",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "same-site",
             "user-agent":
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0",
         },

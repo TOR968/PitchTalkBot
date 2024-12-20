@@ -2,6 +2,9 @@ const axios = require("axios");
 const fs = require("fs").promises;
 const querystring = require("querystring");
 const { HttpsProxyAgent } = require("https-proxy-agent");
+const { SocksProxyAgent } = require("socks-proxy-agent");
+const UserAgentManager = require("./userAgentManager");
+const userAgentManager = new UserAgentManager();
 
 const BASE_URL = "https://api.pitchtalk.app/v1/api";
 
@@ -137,7 +140,7 @@ const setMaxTimer = (timer) => {
     maxTimer = maxTimer < timer ? timer : maxTimer;
 };
 
-const processAccount = async (hash, proxy) => {
+const processAccount = async (hash, proxy, userAgent = null) => {
     try {
         const parsedParams = querystring.parse(hash);
         const hashData = JSON.parse(decodeURIComponent(parsedParams.user));
@@ -149,7 +152,7 @@ const processAccount = async (hash, proxy) => {
             photoUrl: "",
         };
 
-        const authResponse = await postRequest("/auth", authBody, proxy);
+        const authResponse = await postRequest("/auth", authBody, proxy, userAgent);
         const accessToken = authResponse.accessToken;
         if (!accessToken) {
             throw new Error(authResponse?.error?.message || "Unknown error");
@@ -270,9 +273,8 @@ const sleep = async (ms) => {
     process.stdout.clearLine(0);
     process.stdout.write(`${colors.yellow}playing 100%\n`);
 };
-
-const createApiInstance = (accessToken, proxy, user) => {
-    const instance = axios.create({
+const createApiInstance = (accessToken, proxy, user, userAgent = null) => {
+    const config = {
         baseURL: BASE_URL,
         headers: {
             "Content-Type": "application/json",
@@ -280,19 +282,30 @@ const createApiInstance = (accessToken, proxy, user) => {
             origin: "https://webapp.pitchtalk.app",
             priority: "u=1, i",
             referer: "https://webapp.pitchtalk.app/",
-            "sec-ch-ua":
-                '"Microsoft Edge";v="129", "Not=A?Brand";v="8", "Chromium";v="129", "Microsoft Edge WebView2";v="129"',
+            "sec-ch-ua": '"Microsoft Edge";v="129", "Not=A?Brand";v="8", "Chromium";v="129", "Microsoft Edge WebView2";v="129"',
             "sec-ch-ua-mobile": "?0",
             "sec-ch-ua-platform": "Windows",
             "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
+            "sec-fetch-mode": "cors", 
             "sec-fetch-site": "same-site",
-            "user-agent":
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0",
-            "x-telegram-hash": user,
-        },
-        ...(proxy && { httpsAgent: new HttpsProxyAgent(proxy) }),
-    });
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0",
+            "x-telegram-hash": user
+        }
+    };
+
+    if (userAgent) {
+        config.headers["User-Agent"] = userAgent;
+    }
+
+    if (proxy) {
+        if (proxy.startsWith("socks4://") || proxy.startsWith("socks5://")) {
+            config.httpsAgent = new SocksProxyAgent(proxy);
+        } else {
+            config.httpsAgent = new HttpsProxyAgent(proxy);
+        }
+    }
+
+    const instance = axios.create(config);
 
     instance.interceptors.response.use(
         (response) => response.data,
@@ -315,7 +328,7 @@ const getProxies = async () => {
     }
 };
 
-const postRequest = async (endpoint, body = {}, proxy = null) => {
+const postRequest = async (endpoint, body = {}, proxy = null, userAgent) => {
     const config = {
         headers: {
             "Content-Type": "application/json",
@@ -333,8 +346,19 @@ const postRequest = async (endpoint, body = {}, proxy = null) => {
             "user-agent":
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0",
         },
-        ...(proxy && { httpsAgent: new HttpsProxyAgent(proxy) }),
     };
+
+    if (userAgent) {
+        config.headers["User-Agent"] = userAgent;
+    }
+
+    if (proxy) {
+        if (proxy.startsWith("socks4://") || proxy.startsWith("socks5://")) {
+            config.httpsAgent = new SocksProxyAgent(proxy);
+        } else {
+            config.httpsAgent = new HttpsProxyAgent(proxy);
+        }
+    }
 
     try {
         const response = await axios.post(`${BASE_URL}${endpoint}`, body, config);
@@ -389,7 +413,8 @@ const main = async () => {
             console.log(
                 `${colors.blue}--- Start processing account ${i + 1} | proxy: ${proxies[i] || null} ---${colors.reset} `
             );
-            await processAccount(hashes[i].trim(), proxies[i] || null);
+            const userAgent = userAgentManager.getUserAgent(hashes[i]);
+            await processAccount(hashes[i].trim(), proxies[i] || null, userAgent);
             console.log(`${colors.blue}--- Finished processing account ${i + 1} ---${colors.reset}`);
         }
 

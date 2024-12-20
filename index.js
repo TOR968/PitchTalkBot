@@ -168,9 +168,6 @@ const processAccount = async (hash, proxy) => {
         const tasks = await api.get(`/tasks`);
         await processTasks(api, tasks);
 
-        await api.get(`/tasks/verify`);
-        console.log(`${colors.green}Verify Tasks...${colors.reset}`);
-
         const userInfo = await api.get(`/users/me`);
 
         getRefRewards(api, userInfo);

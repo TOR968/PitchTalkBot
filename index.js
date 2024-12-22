@@ -175,7 +175,7 @@ const processAccount = async (hash, proxy, userAgent = null) => {
 
         getRefRewards(api, userInfo);
 
-        // await snowBattleGame(api);
+        await snowBattleGame(api);
 
         //upgrade
         //await api.post(`/users/upgrade`);
@@ -209,8 +209,8 @@ const snowBattleGame = async (api) => {
         if (currentBattle?.status === "PENDING") {
             console.log(`${colors.green} Continuation of the previous game: ${currentBattle.id} ${colors.reset}`);
 
-            const currentBattleInfo = await api.get(`/battles/${currentBattle.id}`);
-            await rounds(api, currentBattle.id, 5 - currentBattleInfo.rounds.length);
+            const currentBattleInfo = await api.get(`/battles/${currentBattle.id}/rounds`);
+            await rounds(api, currentBattle.id, 5 - currentBattleInfo.length);
             profile = await api.get(`/battle-profiles/my`);
 
             console.log(

@@ -22,7 +22,7 @@ const colors = {
 
 const processTasks = async (api, tasks) => {
     console.log(`${colors.green}Processing Tasks...${colors.reset}`);
-    profileIsCreated = false;
+    // profileIsCreated = false;
 
     for (const task of tasks) {
         if (task.template.title === "Subscribe to PitchTalk chanel" && task.status === "INITIAL") {
@@ -37,20 +37,20 @@ const processTasks = async (api, tasks) => {
             return;
         }
 
-        if (task.template.title === "Create Battle Profile") {
-            profileIsCreated = true;
-        }
+        // if (task.template.title === "Create Battle Profile") {
+        //     profileIsCreated = true;
+        // }
 
         await processTask(api, task);
         randomDelay();
     }
 
-    if (!profileIsCreated) {
-        const payload = { slug: "create-battle-profile" };
-        await api.post(`/tasks/create-basic`, payload);
-        randomDelay();
-        statusLog("VERIFY_REQUESTED", "Create Battle Profile");
-    }
+    // if (!profileIsCreated) {
+    //     const payload = { slug: "create-battle-profile" };
+    //     await api.post(`/tasks/create-basic`, payload);
+    //     randomDelay();
+    //     statusLog("VERIFY_REQUESTED", "Create Battle Profile");
+    // }
 };
 
 const processTask = async (api, task) => {

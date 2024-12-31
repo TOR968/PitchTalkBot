@@ -2,11 +2,9 @@
 
 | ✅  | Feature                     |
 | --- | --------------------------- |
-| ✅  | Automates daily tasks       |
 | ✅  | Performs farming operations |
 | ✅  | Handles multiple accounts   |
 | ✅  | Proxy support               |
-| ✅  | Automatic task verification |
 | ✅  | Claim ref rewards           |
 | ✅  | Random restart timer |
 | ✅  | Play snow battle       |

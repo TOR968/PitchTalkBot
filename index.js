@@ -175,7 +175,7 @@ const processAccount = async (hash, proxy, userAgent = null) => {
 
         getRefRewards(api, userInfo);
 
-        await snowBattleGame(api);
+        // await snowBattleGame(api);
 
         //upgrade
         //await api.post(`/users/upgrade`);

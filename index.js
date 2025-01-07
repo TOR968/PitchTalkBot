@@ -112,7 +112,6 @@ const processFarming = async (api) => {
     if (endTime < currentTime) {
         await api.get(`/users/claim-farming`);
         console.log(`${colors.green}Farming Reward Claimed${colors.reset}`);
-        console.log(`${colors.magenta}Next claim in 6 hours${colors.reset}`);
 
         const timer = 6 * 60 * 60 * 1000;
         setMaxTimer(timer);

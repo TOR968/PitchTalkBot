@@ -174,7 +174,7 @@ const processAccount = async (hash, proxy, userAgent = null) => {
 
         getRefRewards(api, userInfo);
 
-        // await snowBattleGame(api);
+        await snowBattleGame(api);
 
         //upgrade
         //await api.post(`/users/upgrade`);
@@ -206,10 +206,10 @@ const snowBattleGame = async (api) => {
         const currentBattle = await api.get(`/battles/current`);
 
         if (currentBattle?.status === "PENDING") {
-            console.log(`${colors.green} Continuation of the previous game: ${currentBattle.id} ${colors.reset}`);
+            console.log(`${colors.green}Continuation of the previous game: ${currentBattle.id} ${colors.reset}`);
 
             const currentBattleInfo = await api.get(`/battles/${currentBattle.id}/rounds`);
-            await rounds(api, currentBattle.id, 5 - currentBattleInfo.length);
+            await rounds(api, currentBattle.id, 3 - currentBattleInfo.length);
             profile = await api.get(`/battle-profiles/my`);
 
             console.log(
@@ -219,7 +219,7 @@ const snowBattleGame = async (api) => {
             console.log(`${colors.magenta}\nStarting Snow Battle Game ...${colors.reset}`);
 
             const battle = await api.get(`/battles/create`);
-            await rounds(api, battle.id, 5);
+            await rounds(api, battle.id, 3);
             profile = await api.get(`/battle-profiles/my`);
 
             console.log(
@@ -229,24 +229,33 @@ const snowBattleGame = async (api) => {
     }
 };
 
-const rounds = async (api, battleId, maxRoundsNumber = 5) => {
+const rounds = async (api, battleId, maxRoundsNumber = 3) => {
     for (let i = 0; i < maxRoundsNumber; i++) {
-        {
-            await api.post(`/battles/${battleId}/rounds`, randomHeadBodyPayload());
-            console.log(`${colors.green}Round ${i + 1}...${colors.reset}`);
-            await sleep(getRandomNumber(9, 14) * 1000);
-        }
+        await api.post(`/battles/${battleId}/rounds`, randomHeadBodyPayload());
+        console.log(`${colors.green}Round ${i + 1}...${colors.reset}`);
+        await sleep(getRandomNumber(9, 14) * 1000);
     }
     console.log(`${colors.green}Battle ${battleId} finished!${colors.reset}`);
 };
 
 const randomHeadBodyPayload = () => {
-    const targets = ["HEAD", "BODY"];
-
-    return {
+    const targets = ["HEAD", "BODY", "LEGS"];
+    const playerDefenseTarget = targets[Math.floor(Math.random() * targets.length)];
+    const payload = {
         playerAttackTarget: targets[Math.floor(Math.random() * targets.length)],
-        playerDefenseTarget: targets[Math.floor(Math.random() * targets.length)],
+        playerDefenseTarget: playerDefenseTarget,
+        playerDodgeTarget: targets[getRandomTarget(targets.indexOf(playerDefenseTarget))],
     };
+
+    return payload;
+};
+
+const getRandomTarget = (excludeTarget) => {
+    let target;
+    do {
+        target = Math.floor(Math.random() * 3);
+    } while (target === excludeTarget);
+    return target;
 };
 
 const sleep = async (ms) => {
@@ -282,9 +291,10 @@ const createApiInstance = (accessToken, proxy, user, userAgent = null) => {
             origin: "https://webapp.pitchtalk.app",
             priority: "u=1, i",
             referer: "https://webapp.pitchtalk.app/",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0",
-            "x-telegram-hash": user
-        }
+            "user-agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0",
+            "x-telegram-hash": user,
+        },
     };
 
     if (userAgent) {

@@ -7,7 +7,7 @@
 | ✅  | Proxy support               |
 | ✅  | Claim ref rewards           |
 | ✅  | Random restart timer |
-| ⏸️  | Play snow battle       |
+| ✅  | Play snow battle       |
 
 ## For suggestions or to report a bug, please contact [telegram](https://t.me/tor_dev)
 

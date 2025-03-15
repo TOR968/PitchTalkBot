@@ -7,16 +7,29 @@ const UserAgentManager = require("./userAgentManager");
 const userAgentManager = new UserAgentManager();
 
 const BASE_URL = "https://api.pitchtalk.app/v1/api";
+const enableSnowBattle = true;
+const enableEnergyRefill = true;
+const enablePVP = false;
 
 let maxTimer = 0;
+let accessToken = null;
 
 const colors = {
     reset: "\x1b[0m",
-    blue: "\x1b[34m",
+    bright: "\x1b[1m",
+    dim: "\x1b[2m",
+    underscore: "\x1b[4m",
+    blink: "\x1b[5m",
+    reverse: "\x1b[7m",
+    hidden: "\x1b[8m",
+    black: "\x1b[30m",
+    red: "\x1b[31m",
     green: "\x1b[32m",
     yellow: "\x1b[33m",
-    red: "\x1b[31m",
+    blue: "\x1b[34m",
     magenta: "\x1b[35m",
+    cyan: "\x1b[36m",
+    white: "\x1b[37m",
     orange: "\x1b[38;2;255;165;0m",
 };
 
@@ -152,7 +165,7 @@ const processAccount = async (hash, proxy, userAgent = null) => {
         };
 
         const authResponse = await postRequest("/auth", authBody, proxy, userAgent);
-        const accessToken = authResponse.accessToken;
+        accessToken = authResponse.accessToken;
         if (!accessToken) {
             throw new Error(authResponse?.error?.message || "Unknown error");
         }
@@ -174,7 +187,9 @@ const processAccount = async (hash, proxy, userAgent = null) => {
 
         getRefRewards(api, userInfo);
 
-        // await snowBattleGame(api);
+        if (enableSnowBattle) {
+            await snowBattleGame(api);
+        }
 
         //upgrade
         //await api.post(`/users/upgrade`);
@@ -186,6 +201,8 @@ const processAccount = async (hash, proxy, userAgent = null) => {
         console.error(`${colors.red}Error processing account:${colors.reset}`, error);
     }
 };
+
+//https://api.pitchtalk.app/v1/api/battle-profiles/claim-rewards
 
 const getRefRewards = async (api, userInfo) => {
     if (userInfo.referralRewards > 0) {
@@ -202,30 +219,90 @@ const snowBattleGame = async (api) => {
     let profile = await api.get(`/battle-profiles/my`);
     console.log(`${colors.green}Profile Energy: ${profile?.energy} ${colors.reset}`);
 
-    while (profile?.energy > 0) {
-        const currentBattle = await api.get(`/battles/current`);
+    if (profile) {
+        console.log(
+            `${colors.green}Wins: ${profile.wins} | Losses: ${profile.losses} | Draws: ${profile.draws} ${colors.reset}`
+        );
 
-        if (currentBattle?.status === "PENDING") {
-            console.log(`${colors.green}Continuation of the previous game: ${currentBattle.id} ${colors.reset}`);
+        while (profile?.energy > 0) {
+            if (profile?.autoBattlesAvailable > 0) {
+                console.log(`${colors.green}Auto Battles Available: ${profile?.autoBattlesAvailable} ${colors.reset}`);
+                playAutoBattle(api);
 
-            const currentBattleInfo = await api.get(`/battles/${currentBattle.id}/rounds`);
-            await rounds(api, currentBattle.id, 3 - currentBattleInfo.length);
-            profile = await api.get(`/battle-profiles/my`);
+                await sleep(getRandomNumber(2000, 3000));
 
-            console.log(
-                `${colors.green} Wins: ${profile.wins} | Losses: ${profile.losses} | Draws: ${profile.draws} ${colors.reset}`
-            );
-        } else {
-            console.log(`${colors.magenta}\nStarting Snow Battle Game ...${colors.reset}`);
+                profile = await api.get(`/battle-profiles/my`);
+            } else {
+                const currentBattleCheck = await api.get(`/battles/check-current`);
 
-            const battle = await api.get(`/battles/create`);
-            await rounds(api, battle.id, 3);
-            profile = await api.get(`/battle-profiles/my`);
+                if (currentBattleCheck) {
+                    const currentBattle = await api.get(`/battles/current`);
+                    console.log(
+                        `${colors.green}Continuation of the previous game: ${currentBattle.id} ${colors.reset}`
+                    );
 
-            console.log(
-                `${colors.green}Wins: ${profile.wins} | Losses: ${profile.losses} | Draws: ${profile.draws} ${colors.reset}`
-            );
+                    const currentBattleInfo = await api.get(`/battles/${currentBattle.id}/rounds`);
+                    await rounds(api, currentBattle.id, 3 - currentBattleInfo.length);
+                    profile = await api.get(`/battle-profiles/my`);
+
+                    console.log(
+                        `${colors.green} Wins: ${profile.wins} | Losses: ${profile.losses} | Draws: ${profile.draws} ${colors.reset}`
+                    );
+                } else if (enablePVP) {
+                    console.log(`${colors.magenta}\nStarting Snow Battle Game ...${colors.reset}`);
+
+                    let battle = await api.get(`/battles/register-pvp-battle`);
+                    console.log(battle);
+
+                    if (battle.type === "BATTLE_STARTED") {
+                        console.log(`${colors.green}BATTLE STARTED ID: ${colors.reset}`, battle.data.battleId);
+                        await pvp(api, battle.data.battleId, 3);
+                    } else {
+                        // await api.get(`/battles/cancel-pvp-battle`);
+                        console.log(`${colors.red}BATTLE CANCELLED ${colors.reset}`);
+                    }
+
+                    profile = await api.get(`/battle-profiles/my`);
+
+                    console.log(
+                        `${colors.green}Wins: ${profile.wins} | Losses: ${profile.losses} | Draws: ${profile.draws} ${colors.reset}`
+                    );
+                    console.log(`${colors.green}Profile Energy: ${profile?.energy} ${colors.reset}`);
+
+                    await sleep(getRandomNumber(2000, 3000));
+                } else {
+                    console.log(`${colors.magenta}\nStarting Snow Battle Game ...${colors.reset}`);
+        
+                    const battle = await api.get(`/battles/create`);
+                    await rounds(api, battle.id, 3);
+                    profile = await api.get(`/battle-profiles/my`);
+        
+                    console.log(
+                        `${colors.green}Wins: ${profile.wins} | Losses: ${profile.losses} | Draws: ${profile.draws} ${colors.reset}`
+                    );
+                }
+            }
+
+            if (enableEnergyRefill && profile?.energy === 0 && profile?.energyRefills > 0) {
+                console.log(`${colors.green}Refilling energy...${colors.reset}`);
+                await api.get(`/battle-profiles/refill-energy`);
+                profile = await api.get(`/battle-profiles/my`);
+                console.log(`${colors.green}Energy refilled!${colors.reset}`);
+    
+                await sleep(getRandomNumber(2000, 3000));
+            }
         }
+    }
+};
+
+const playAutoBattle = async (api) => {
+    console.log(`${colors.green}Playing Auto Battle...${colors.reset}`);
+    const autoBattles = await api.get(`/battles/create-auto`);
+
+    if (autoBattles.playerId === autoBattles.winnerId) {
+        console.log(`${colors.green}Battle ID:${autoBattles.id} Won ${colors.reset}`);
+    } else {
+        console.log(`${colors.red}Battle ID:${autoBattles.id} Lost ${colors.reset}`);
     }
 };
 
@@ -235,7 +312,7 @@ const rounds = async (api, battleId, maxRoundsNumber = 3) => {
         console.log(`${colors.green}Round ${i + 1}...${colors.reset}`);
         await sleep(getRandomNumber(9, 14) * 1000);
     }
-    console.log(`${colors.green}Battle ${battleId} finished!${colors.reset}`);
+    console.log(`${colors.green}Battle ID:${battleId} finished!${colors.reset}`);
 };
 
 const randomHeadBodyPayload = () => {
@@ -245,6 +322,43 @@ const randomHeadBodyPayload = () => {
         playerAttackTarget: targets[Math.floor(Math.random() * targets.length)],
         playerDefenseTarget: playerDefenseTarget,
         playerDodgeTarget: targets[getRandomTarget(targets.indexOf(playerDefenseTarget))],
+    };
+
+    return payload;
+};
+
+const pvp = async (api, battleId, maxRoundsNumber = 3) => {
+    const pvp = await api.get(`/battles/${battleId}/pvp`);
+
+    if (pvp.status === "PENDING") {
+        console.log(`${colors.green} Opponent found! ${pvp.opponent.username} ${colors.reset}`);
+        for (let i = 0; i < maxRoundsNumber; i++) {
+            const round = await api.post(`/battles/${battleId}/pvp`, randomHeadBodyPVP(i));
+
+            console.log(`${colors.green}Round ${i + 1}...${colors.reset}`);
+            if (round.rounds[i].pvpStatus === "ONE_PLAYER_PROCEED") {
+                await api.get(`/battles/decline-pvp-battle`);
+                console.log(`${colors.red}Opponent declined the battle.${colors.reset}`);
+                continue;
+            } else if (round.rounds[i].pvpStatus === "COMPLETED") {
+                console.log(
+                    `${colors.green} Score: ${round.rounds[i].playerScore} - ${round.rounds[i].opponentScore} ${colors.reset}`
+                );
+                await sleep(getRandomNumber(4, 8) * 1000);
+            }
+        }
+    }
+    console.log(`${colors.green}Battle ${battleId} finished!${colors.reset}`);
+};
+
+const randomHeadBodyPVP = (roundNumber) => {
+    const targets = ["HEAD", "BODY", "LEGS"];
+    const playerDefenseTarget = targets[Math.floor(Math.random() * targets.length)];
+    const payload = {
+        attackTarget: targets[Math.floor(Math.random() * targets.length)],
+        defenseTarget: playerDefenseTarget,
+        dodgeTarget: targets[getRandomTarget(targets.indexOf(playerDefenseTarget))],
+        roundNumber: roundNumber + 1,
     };
 
     return payload;
@@ -279,7 +393,7 @@ const sleep = async (ms) => {
     clearInterval(loaderInterval);
     process.stdout.write("\r");
     process.stdout.clearLine(0);
-    process.stdout.write(`${colors.yellow}playing 100%\n`);
+    process.stdout.write(`${colors.yellow}100%\n`);
 };
 
 const createApiInstance = (accessToken, proxy, user, userAgent = null) => {
@@ -293,7 +407,6 @@ const createApiInstance = (accessToken, proxy, user, userAgent = null) => {
             referer: "https://webapp.pitchtalk.app/",
             "user-agent":
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0",
-            "x-telegram-hash": user,
         },
     };
 

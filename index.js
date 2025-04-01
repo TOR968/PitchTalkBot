@@ -7,8 +7,8 @@ const UserAgentManager = require("./userAgentManager");
 const userAgentManager = new UserAgentManager();
 
 const BASE_URL = "https://api.pitchtalk.app/v1/api";
-const enableSnowBattle = true;
-const enableEnergyRefill = true;
+const enableSnowBattle = false;
+const enableEnergyRefill = false;
 const enablePVP = false;
 
 let maxTimer = 0;

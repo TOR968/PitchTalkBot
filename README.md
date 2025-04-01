@@ -7,8 +7,8 @@
 | ✅  | Proxy support               |
 | ✅  | Claim ref rewards           |
 | ✅  | Random restart timer |
-| ✅  | Play snow battle       |
-| ✅  | Refill energy       |
+| ⏸️  | Play snow battle       |
+| ⏸️  | Refill energy       |
 | ❌  | Play PVP       |
 
 ## For suggestions or to report a bug, please contact [telegram](https://t.me/tor_dev)
